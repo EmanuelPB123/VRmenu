@@ -5,13 +5,7 @@
     <video id="camera-feed" autoplay playsinline></video>
   </a-assets>
   
-  <!-- Plano con la imagen de la cámara (NO vinculado a la cámara, sino fijo en el mundo) -->
-  <a-plane id="background-plane"
-    position="0 1.6 -5" 
-    width="10" 
-    height="6" 
-    material="src: #camera-feed; transparent: true; opacity: 1; side: double">
-  </a-plane>
+
   
   <!-- Tubo fijo en el espacio, más cerca de la cámara que el plano de fondo -->
   <a-cylinder 
@@ -24,7 +18,15 @@
   
   <!-- Cámara normal sin plano hijo -->
   <a-entity id="rig" position="0 1.6 0">
-    <a-entity id="camera" camera look-controls></a-entity>
+    <a-entity id="camera" camera look-controls>
+          <!-- Plano con la imagen de la cámara (NO vinculado a la cámara, sino fijo en el mundo) -->
+  <a-plane id="background-plane"
+  position="0 1.6 -5" 
+  width="10" 
+  height="6" 
+  material="src: #camera-feed; transparent: true; opacity: 1; side: double">
+</a-plane>
+    </a-entity>
   </a-entity>
   
   <!-- Interfaz para selección de cámara -->
