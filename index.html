@@ -1,12 +1,22 @@
 <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
 
-<a-scene>
+<a-scene id="scene">
     <a-assets>
-        <video id="camera-feed" autoplay playsinline>
+        <video id="camera-feed" autoplay playsinline></video>
+    </a-assets>
 
-                <!-- Tubo fijo en el espacio, con id para controlarlo -->
-    <a-cylinder id="measurement-cylinder" position="0 1 -3" radius="0.5" height="2" color="red" shadow>
-    </a-cylinder>
+    <!-- Un grupo que contendrá todos los objetos virtuales para escalarlos juntos -->
+    <a-entity id="world-container" scale="1 1 1">
+        <!-- Tubo fijo en el espacio, con id para controlarlo -->
+        <a-cylinder id="measurement-cylinder" position="0 1 -3" radius="0.5" height="2" color="red" shadow>
+        </a-cylinder>
+        
+        <!-- Línea de referencia de 1 metro -->
+        <a-entity id="reference-meter" position="0 0 -3">
+            <a-box position="0 0 0" width="0.05" height="0.05" depth="1" color="green"></a-box>
+            <a-text value="1m" position="0.1 0 0" color="white" scale="0.5 0.5 0.5"></a-text>
+        </a-entity>
+    </a-entity>
 
     <!-- Cámara normal con plano de fondo -->
     <a-entity id="rig" position="0 1.6 0">
@@ -16,20 +26,40 @@
             </a-plane>
         </a-entity>
     </a-entity>
-    
-        </video>
-    </a-assets>
-
-
 
     <!-- Panel de control mejorado -->
-    <div style="position: absolute; bottom: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; color: white; display: flex; flex-direction: column; gap: 10px;">
+    <div style="position: absolute; bottom: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; color: white; display: flex; flex-direction: column; gap: 10px; max-height: 80vh; overflow-y: auto;">
         <div id="camera-controls">
             <button id="front-camera" style="margin-right: 5px;">Cámara Frontal</button>
             <button id="back-camera">Cámara Trasera</button>
         </div>
         
-        <div id="position-controls">
+        <div id="world-scale-controls" style="border-top: 1px solid #666; padding-top: 10px; margin-top: 5px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 14px;">Escala del Mundo</h3>
+            <div style="margin-bottom: 5px;">
+                <label>Escala Global: </label>
+                <input type="range" id="global-scale" min="0.1" max="5" step="0.1" value="1" style="width: 100px;">
+                <span id="global-scale-value">1</span>
+            </div>
+            <div style="margin-bottom: 5px;">
+                <label>Escala X: </label>
+                <input type="range" id="scale-x" min="0.1" max="5" step="0.1" value="1" style="width: 100px;">
+                <span id="scale-x-value">1</span>
+            </div>
+            <div style="margin-bottom: 5px;">
+                <label>Escala Y: </label>
+                <input type="range" id="scale-y" min="0.1" max="5" step="0.1" value="1" style="width: 100px;">
+                <span id="scale-y-value">1</span>
+            </div>
+            <div style="margin-bottom: 5px;">
+                <label>Escala Z: </label>
+                <input type="range" id="scale-z" min="0.1" max="5" step="0.1" value="1" style="width: 100px;">
+                <span id="scale-z-value">1</span>
+            </div>
+        </div>
+        
+        <div id="position-controls" style="border-top: 1px solid #666; padding-top: 10px; margin-top: 5px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 14px;">Posición del Cilindro</h3>
             <div style="margin-bottom: 5px;">
                 <label>Posición X: </label>
                 <input type="range" id="pos-x" min="-5" max="5" step="0.1" value="0" style="width: 100px;">
@@ -47,7 +77,8 @@
             </div>
         </div>
         
-        <div id="size-controls">
+        <div id="size-controls" style="border-top: 1px solid #666; padding-top: 10px; margin-top: 5px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 14px;">Tamaño del Cilindro</h3>
             <div style="margin-bottom: 5px;">
                 <label>Radio: </label>
                 <input type="range" id="cylinder-radius" min="0.1" max="1.0" step="0.1" value="0.5" style="width: 100px;">
@@ -60,15 +91,28 @@
             </div>
         </div>
         
-        <button id="reset-button">Restablecer valores</button>
+        <button id="reset-button" style="margin-top: 10px;">Restablecer valores</button>
     </div>
 
     <script>
         const video = document.getElementById('camera-feed');
         const backgroundPlane = document.getElementById('background-plane');
         const cylinder = document.getElementById('measurement-cylinder');
+        const worldContainer = document.getElementById('world-container');
+        
+        // Controles de cámara
         const frontCameraButton = document.getElementById('front-camera');
         const backCameraButton = document.getElementById('back-camera');
+        
+        // Referencias a los controles de escala
+        const globalScaleSlider = document.getElementById('global-scale');
+        const scaleXSlider = document.getElementById('scale-x');
+        const scaleYSlider = document.getElementById('scale-y');
+        const scaleZSlider = document.getElementById('scale-z');
+        const globalScaleValue = document.getElementById('global-scale-value');
+        const scaleXValue = document.getElementById('scale-x-value');
+        const scaleYValue = document.getElementById('scale-y-value');
+        const scaleZValue = document.getElementById('scale-z-value');
         
         // Referencias a los controles de posición
         const posXSlider = document.getElementById('pos-x');
@@ -108,6 +152,52 @@
                 console.error('Error accediendo a la cámara:', error);
             });
         }
+        
+        // Configurar controles de escala
+        globalScaleSlider.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            scaleXSlider.value = value;
+            scaleYSlider.value = value;
+            scaleZSlider.value = value;
+            scaleXValue.textContent = value;
+            scaleYValue.textContent = value;
+            scaleZValue.textContent = value;
+            
+            worldContainer.setAttribute('scale', {
+                x: value,
+                y: value,
+                z: value
+            });
+            
+            globalScaleValue.textContent = value;
+        });
+        
+        scaleXSlider.addEventListener('input', function() {
+            const x = parseFloat(this.value);
+            const y = parseFloat(scaleYSlider.value);
+            const z = parseFloat(scaleZSlider.value);
+            
+            worldContainer.setAttribute('scale', {x, y, z});
+            scaleXValue.textContent = x;
+        });
+        
+        scaleYSlider.addEventListener('input', function() {
+            const x = parseFloat(scaleXSlider.value);
+            const y = parseFloat(this.value);
+            const z = parseFloat(scaleZSlider.value);
+            
+            worldContainer.setAttribute('scale', {x, y, z});
+            scaleYValue.textContent = y;
+        });
+        
+        scaleZSlider.addEventListener('input', function() {
+            const x = parseFloat(scaleXSlider.value);
+            const y = parseFloat(scaleYSlider.value);
+            const z = parseFloat(this.value);
+            
+            worldContainer.setAttribute('scale', {x, y, z});
+            scaleZValue.textContent = z;
+        });
 
         // Configurar los controles de posición
         posXSlider.addEventListener('input', function() {
@@ -150,6 +240,17 @@
         
         // Configurar botón de reset
         resetButton.addEventListener('click', function() {
+            // Restablecer escala
+            globalScaleSlider.value = 1;
+            scaleXSlider.value = 1;
+            scaleYSlider.value = 1;
+            scaleZSlider.value = 1;
+            globalScaleValue.textContent = "1";
+            scaleXValue.textContent = "1";
+            scaleYValue.textContent = "1";
+            scaleZValue.textContent = "1";
+            worldContainer.setAttribute('scale', {x: 1, y: 1, z: 1});
+            
             // Restablecer posiciones
             posXSlider.value = 0;
             posYSlider.value = 1;
