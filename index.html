@@ -2,10 +2,9 @@
 
 <a-scene>
     <a-assets>
-        <video id="camera-feed" autoplay playsinline></video>
-    </a-assets>
+        <video id="camera-feed" autoplay playsinline>
 
-    <!-- Tubo fijo en el espacio, con id para controlarlo -->
+                <!-- Tubo fijo en el espacio, con id para controlarlo -->
     <a-cylinder id="measurement-cylinder" position="0 1 -3" radius="0.5" height="2" color="red" shadow>
     </a-cylinder>
 
@@ -17,6 +16,11 @@
             </a-plane>
         </a-entity>
     </a-entity>
+    
+        </video>
+    </a-assets>
+
+
 
     <!-- Panel de control mejorado -->
     <div style="position: absolute; bottom: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; color: white; display: flex; flex-direction: column; gap: 10px;">
