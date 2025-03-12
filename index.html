@@ -2,41 +2,65 @@
 
 <a-scene>
   <a-assets>
-    <video id="camera" autoplay playsinline></video>
+    <video id="camera-feed" autoplay playsinline></video>
   </a-assets>
   
-  <!-- Crear una entidad cámara personalizada -->
+  <!-- Entidad cámara personalizada con plano de fondo -->
   <a-entity id="rig" position="0 1.6 0">
     <a-entity id="camera" camera look-controls>
-      <!-- Plano anclado a la cámara que siempre está frente al usuario -->
       <a-plane id="background-plane"
         position="0 0 -1" 
-        material="src: #camera; transparent: true; opacity: 1; side: double">
+        material="src: #camera-feed; transparent: true; opacity: 1; side: double">
       </a-plane>
     </a-entity>
   </a-entity>
   
+  <!-- Tubo fijo en el espacio (no bloqueado a la cámara) -->
+  <a-cylinder 
+    position="0 1 -3" 
+    radius="0.5" 
+    height="2" 
+    color="red" 
+    shadow>
+  </a-cylinder>
+  
+  <!-- Interfaz para selección de cámara -->
+  <div id="camera-controls" style="position: absolute; bottom: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">
+    <button id="front-camera">Cámara Frontal</button>
+    <button id="back-camera">Cámara Trasera</button>
+  </div>
+  
   <script>
-    const video = document.getElementById('camera');
+    const video = document.getElementById('camera-feed');
     const backgroundPlane = document.getElementById('background-plane');
+    const frontCameraButton = document.getElementById('front-camera');
+    const backCameraButton = document.getElementById('back-camera');
     
-    // Solicitar acceso a la cámara
-    navigator.mediaDevices.getUserMedia({video: true})
+    // Función para iniciar la cámara con la configuración especificada
+    function startCamera(facingMode) {
+      navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: facingMode
+        }
+      })
       .then(stream => {
+        // Detener cualquier stream existente
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        
+        // Configurar el nuevo stream
         video.srcObject = stream;
         video.play();
         
-        // Ajustar el tamaño del plano basado en las dimensiones del video y la distancia
+        // Ajustar el tamaño del plano basado en las dimensiones del video
         video.onloadedmetadata = function() {
           const videoAspect = video.videoWidth / video.videoHeight;
-          const distance = 1; // Distancia del plano a la cámara
-          
-          // Calcula el tamaño del plano para que coincida con el campo de visión
-          const vFOV = 75 * Math.PI / 180; // Campo de visión vertical en radianes (por defecto 75 grados)
+          const distance = 1;
+          const vFOV = 75 * Math.PI / 180;
           const height = 2 * Math.tan(vFOV / 2) * distance;
           const width = height * videoAspect;
           
-          // Aplicar dimensiones al plano
           backgroundPlane.setAttribute('width', width);
           backgroundPlane.setAttribute('height', height);
         };
@@ -44,7 +68,20 @@
       .catch(error => {
         console.error('Error accediendo a la cámara:', error);
       });
-      
+    }
+    
+    // Configurar los botones de selección de cámara
+    frontCameraButton.addEventListener('click', () => {
+      startCamera('user'); // Cámara frontal
+    });
+    
+    backCameraButton.addEventListener('click', () => {
+      startCamera('environment'); // Cámara trasera
+    });
+    
+    // Iniciar con la cámara trasera por defecto
+    startCamera('environment');
+    
     // Ajustar el tamaño del plano cuando cambia el tamaño de la ventana
     window.addEventListener('resize', function() {
       const sceneEl = document.querySelector('a-scene');
